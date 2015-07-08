@@ -2,11 +2,13 @@ package com.example.alinmatov.testapplication;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -32,6 +34,7 @@ import java.util.Locale;
 public class PreviewImageActivity extends Activity {
 
     Bitmap image;
+    File imageFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,10 +51,22 @@ public class PreviewImageActivity extends Activity {
         String message = intent.getStringExtra(Helper.SELECTED_IMAGE);
 
         try {
-            image = decodeUri(Uri.parse(message));
-        } catch (FileNotFoundException e) {
+            //image = decodeUri(Uri.parse(message));
+            image = MediaStore.Images.Media.getBitmap(this.getContentResolver(), Uri.parse(message));
+
+            imageFile = new File(getPath(Uri.parse(message)));
+        } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    String getPath(Uri uri) {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        Cursor cursor = managedQuery(uri, projection, null, null, null);
+        startManagingCursor(cursor);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
     }
 
     private void initInstant() {
@@ -66,8 +81,8 @@ public class PreviewImageActivity extends Activity {
 
                 RequestParams params = new RequestParams();
                 try {
-                    params.put("fileToUpload", prepairImage());
-                } catch(FileNotFoundException e) {} catch (IOException e) {
+                    params.put("fileToUpload", imageFile);
+                } catch(FileNotFoundException e) {
                     e.printStackTrace();
                 }
                 client.post("http://192.168.199.248/test_upload/upload.php",params,new TextHttpResponseHandler() {
