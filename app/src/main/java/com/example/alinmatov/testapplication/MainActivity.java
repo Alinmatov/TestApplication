@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
         if (id == R.id.action_settings) {
             return true;
         }
-
+// update
         return super.onOptionsItemSelected(item);
     }
 }
