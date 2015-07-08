@@ -6,11 +6,28 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.loopj.android.http.RequestParams;
+import com.loopj.android.http.TextHttpResponseHandler;
+
+import org.apache.http.Header;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Locale;
 
 public class PreviewImageActivity extends Activity {
 
@@ -41,6 +58,95 @@ public class PreviewImageActivity extends Activity {
         ImageView imageView = (ImageView)findViewById(R.id.ivPreview);
         imageView.setImageBitmap(image);
 
+        Button btnSend = (Button) findViewById(R.id.btnSend);
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AsyncHttpClient client = new AsyncHttpClient();
+
+                RequestParams params = new RequestParams();
+                try {
+                    params.put("fileToUpload", prepairImage());
+                } catch(FileNotFoundException e) {} catch (IOException e) {
+                    e.printStackTrace();
+                }
+                client.post("http://192.168.199.248/test_upload/upload.php",params,new TextHttpResponseHandler() {
+
+                    @Override
+                    public void onStart() {
+                        // called before request is started
+                        Log.d("app","on start");
+                    }
+
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, String responseString, Throwable throwable) {
+
+                    }
+
+                    @Override
+                    public void onSuccess(int statusCode, Header[] headers, String response) {
+                        // called when response HTTP status is "200 OK"
+                        Toast.makeText(getApplicationContext(),"Upload Success",Toast.LENGTH_LONG).show();
+                        Log.d("app","on Success:"+response.toString());
+                        if (headers != null) {
+                            Log.d("app", "Return Headers:");
+                            StringBuilder builder = new StringBuilder();
+                            for (Header h : headers) {
+                                String _h = String.format(Locale.US, "%s : %s", h.getName(), h.getValue());
+                                Log.d("app", _h);
+                                builder.append(_h);
+                                builder.append("\n");
+                            }
+                        } else {
+                            Log.d("app","null");
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, byte[] errorResponse, Throwable e) {
+                        // called when response HTTP status is "4XX" (eg. 401, 403, 404)
+                        Log.d("app","on Fail"+statusCode);
+                        if (headers != null) {
+                            Log.d("app", "Return Headers:");
+                            StringBuilder builder = new StringBuilder();
+                            for (Header h : headers) {
+                                String _h = String.format(Locale.US, "%s : %s", h.getName(), h.getValue());
+                                Log.d("app", _h);
+                                builder.append(_h);
+                                builder.append("\n");
+                            }
+                        } else {
+                            Log.d("app","null");
+                        }
+                    }
+
+                    @Override
+                    public void onRetry(int retryNo) {
+                        // called when request is retried
+                        Log.d("app","on Retry");
+                    }
+                });
+            }
+        });
+
+    }
+    private File prepairImage() throws IOException {
+        //create a file to write bitmap data
+        File f = new File(getCacheDir(), "image.jpg");
+        f.createNewFile();
+
+//Convert bitmap to byte array
+        Bitmap bitmap = image;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 0 /*ignored for PNG*/, bos);
+        byte[] bitmapdata = bos.toByteArray();
+
+//write the bytes in file
+        FileOutputStream fos = new FileOutputStream(f);
+        fos.write(bitmapdata);
+        fos.flush();
+        fos.close();
+        return f;
     }
 
     private Bitmap decodeUri(Uri selectedImage) throws FileNotFoundException {
@@ -51,7 +157,7 @@ public class PreviewImageActivity extends Activity {
         BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o);
 
         // The new size we want to scale to
-        final int REQUIRED_SIZE = 140;
+        final int REQUIRED_SIZE = 500;
 
         // Find the correct scale value. It should be the power of 2.
         int width_tmp = o.outWidth, height_tmp = o.outHeight;
@@ -72,6 +178,7 @@ public class PreviewImageActivity extends Activity {
         return BitmapFactory.decodeStream(getContentResolver().openInputStream(selectedImage), null, o2);
 
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
