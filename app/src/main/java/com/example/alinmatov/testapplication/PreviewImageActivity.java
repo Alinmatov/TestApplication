@@ -85,7 +85,7 @@ public class PreviewImageActivity extends Activity {
                 } catch(FileNotFoundException e) {
                     e.printStackTrace();
                 }
-                client.post("http://192.168.199.248/test_upload/upload.php",params,new TextHttpResponseHandler() {
+                client.post("http://student.nu.ac.th/alinmatov/test_upload/upload.php",params,new TextHttpResponseHandler() {
 
                     @Override
                     public void onStart() {
